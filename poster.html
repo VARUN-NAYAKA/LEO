@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEO - Project Poster</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+@page{size:A1 landscape;margin:0}
+body{font-family:'Inter',sans-serif;background:#0a0e27;color:#e0e6ff;width:1190px;margin:0 auto;padding:0}
+.poster{width:1190px;min-height:842px;background:linear-gradient(135deg,#0a0e27 0%,#0d1440 30%,#111b54 60%,#0a0e27 100%);position:relative;overflow:hidden;padding:18px}
+.poster::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 20% 20%,rgba(0,200,255,0.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(120,0,255,0.06) 0%,transparent 50%);pointer-events:none}
+.bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,200,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.03) 1px,transparent 1px);background-size:30px 30px;pointer-events:none}
+
+/* Header */
+.header{background:linear-gradient(90deg,#00c8ff,#7c3aed,#00c8ff);border-radius:10px;padding:3px;margin-bottom:14px;position:relative;z-index:1}
+.header-inner{background:linear-gradient(135deg,#0d1440,#111b54);border-radius:8px;padding:14px 20px;text-align:center;display:flex;align-items:center;justify-content:center;gap:18px}
+.college-logo{width:56px;height:56px;background:linear-gradient(135deg,#00c8ff,#7c3aed);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Orbitron';font-weight:900;font-size:11px;color:#fff;flex-shrink:0;text-align:center;line-height:1.1}
+.header-text h3{font-size:10px;color:#7ec8e3;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;font-weight:400}
+.header-text h1{font-family:'Orbitron';font-size:26px;font-weight:900;background:linear-gradient(90deg,#00c8ff,#a78bfa,#00c8ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;line-height:1.2}
+.header-text .subtitle{font-size:13px;color:#a78bfa;font-weight:600;margin-top:1px}
+.header-text .meta{font-size:9px;color:#7ec8e3;margin-top:4px;letter-spacing:1px}
+
+/* Columns */
+.content{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;position:relative;z-index:1}
+
+/* Section styling */
+.section{background:rgba(13,20,64,0.7);border:1px solid rgba(0,200,255,0.15);border-radius:10px;padding:14px;backdrop-filter:blur(10px)}
+.section-title{font-family:'Orbitron';font-size:13px;font-weight:700;color:#00c8ff;text-transform:uppercase;letter-spacing:2px;padding-bottom:6px;margin-bottom:10px;border-bottom:2px solid;border-image:linear-gradient(90deg,#00c8ff,transparent) 1;display:flex;align-items:center;gap:8px}
+.section-title .icon{font-size:16px}
+.section p,.section li{font-size:9.5px;line-height:1.5;color:#c0c8e8}
+.section ul{list-style:none;padding:0}
+.section li{padding:3px 0 3px 14px;position:relative}
+.section li::before{content:'▸';position:absolute;left:0;color:#00c8ff;font-weight:bold}
+
+/* Images */
+.img-card{border-radius:8px;overflow:hidden;border:1px solid rgba(0,200,255,0.2);margin:8px 0}
+.img-card img{width:100%;height:120px;object-fit:cover;display:block}
+.img-card.tall img{height:150px}
+.img-card-label{background:rgba(0,200,255,0.1);padding:4px 8px;font-size:8px;color:#7ec8e3;text-align:center;letter-spacing:1px;text-transform:uppercase}
+
+/* Feature grid */
+.feature-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
+.feature-item{background:linear-gradient(135deg,rgba(0,200,255,0.08),rgba(120,58,237,0.08));border:1px solid rgba(0,200,255,0.12);border-radius:6px;padding:7px;text-align:center}
+.feature-item .feat-icon{font-size:18px;margin-bottom:3px}
+.feature-item .feat-title{font-size:8.5px;font-weight:700;color:#00c8ff;text-transform:uppercase;letter-spacing:0.5px}
+.feature-item .feat-desc{font-size:7.5px;color:#8890b5;margin-top:2px}
+
+/* Tech stack pills */
+.tech-pills{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.pill{background:linear-gradient(135deg,rgba(0,200,255,0.15),rgba(120,58,237,0.15));border:1px solid rgba(0,200,255,0.25);border-radius:12px;padding:3px 10px;font-size:8px;color:#a78bfa;font-weight:600;letter-spacing:0.5px}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
+.stat-box{background:linear-gradient(135deg,rgba(0,200,255,0.1),rgba(120,58,237,0.1));border:1px solid rgba(0,200,255,0.2);border-radius:8px;padding:8px;text-align:center}
+.stat-box .num{font-family:'Orbitron';font-size:20px;font-weight:900;background:linear-gradient(90deg,#00c8ff,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-box .label{font-size:7px;color:#7ec8e3;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+/* Flow diagram */
+.flow{display:flex;align-items:center;justify-content:center;gap:4px;margin:8px 0;flex-wrap:wrap}
+.flow-step{background:linear-gradient(135deg,#0d1440,#1a1f5a);border:1px solid rgba(0,200,255,0.3);border-radius:6px;padding:6px 8px;text-align:center;font-size:7.5px;color:#00c8ff;font-weight:600;min-width:65px}
+.flow-arrow{color:#7c3aed;font-size:14px;font-weight:bold}
+
+/* Highlight box */
+.highlight-box{background:linear-gradient(135deg,rgba(0,200,255,0.12),rgba(120,58,237,0.12));border-left:3px solid #00c8ff;border-radius:0 8px 8px 0;padding:10px 12px;margin:8px 0}
+.highlight-box p{font-size:9px;color:#c0c8e8;font-style:italic;line-height:1.5}
+
+/* Footer */
+.footer{margin-top:14px;background:linear-gradient(90deg,rgba(0,200,255,0.1),rgba(120,58,237,0.1),rgba(0,200,255,0.1));border:1px solid rgba(0,200,255,0.15);border-radius:10px;padding:10px 20px;text-align:center;position:relative;z-index:1}
+.footer p{font-size:8px;color:#7ec8e3;letter-spacing:1px}
+.footer .ack{font-size:9px;color:#a78bfa;font-weight:600}
+
+/* Two-image row */
+.img-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+</style>
+</head>
+<body>
+<div class="poster">
+<div class="bg-grid"></div>
+
+<!-- HEADER -->
+<div class="header">
+<div class="header-inner">
+<div class="college-logo">SJB<br>IT</div>
+<div class="header-text">
+<h3>SJB Institute of Technology — Department of Information Science & Engineering</h3>
+<h1>L.E.O — LINGUISTIC EXECUTIVE OFFICER</h1>
+<div class="subtitle">A Fully Autonomous, Voice-Driven, Cross-Platform AI Assistant</div>
+<div class="meta">Project Supervised By: Prof. Rajasekhar V, Dept of ISE, SJBIT &nbsp;|&nbsp; Presented By: Varun Nayaka</div>
+</div>
+<div class="college-logo">ISE<br>Dept</div>
+</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- ═══ COLUMN 1: INTRODUCTION & OBJECTIVES ═══ -->
+<div style="display:flex;flex-direction:column;gap:14px">
+<div class="section">
+<div class="section-title"><span class="icon">🔬</span> Introduction</div>
+<p>Modern AI assistants like Siri and Alexa remain limited — they cannot see your screen, control your applications, or remember context across sessions. LEO (Linguistic Executive Officer) is an <strong style="color:#00c8ff">autonomous AI system</strong> that bridges this gap by combining real-time voice interaction, visual screen awareness, computer automation, and persistent memory into a single unified agent.</p>
+<p style="margin-top:6px">Unlike cloud-locked assistants, LEO operates locally with <strong style="color:#a78bfa">zero subscriptions</strong>, offering full OS-level control through natural conversation on Windows, macOS, and Linux.</p>
+<div class="img-card" style="margin-top:10px">
+<img src="leo_brain_hero.png" alt="AI Brain Visualization" onerror="this.style.background='linear-gradient(135deg,#0d1440,#1a1f5a)';this.style.height='120px'">
+<div class="img-card-label">LEO's Neural Intelligence Core</div>
+</div>
+</div>
+
+<div class="section">
+<div class="section-title"><span class="icon">🎯</span> Objectives</div>
+<ul>
+<li>Build a <strong style="color:#00c8ff">fully autonomous</strong> AI assistant capable of controlling any operating system via voice</li>
+<li>Implement <strong style="color:#00c8ff">real-time visual awareness</strong> through screen capture and webcam analysis</li>
+<li>Develop an <strong style="color:#00c8ff">agentic task planner</strong> for multi-step goal execution without human intervention</li>
+<li>Create a <strong style="color:#00c8ff">persistent memory system</strong> that remembers user context across sessions</li>
+<li>Enable <strong style="color:#00c8ff">cross-platform browser automation</strong> using Playwright for web-based tasks</li>
+<li>Ensure <strong style="color:#00c8ff">privacy-first design</strong> with local execution and physical mute controls</li>
+</ul>
+</div>
+
+<div class="section">
+<div class="section-title"><span class="icon">⚡</span> Core Features</div>
+<div class="feature-grid">
+<div class="feature-item"><div class="feat-icon">🎙️</div><div class="feat-title">Voice Engine</div><div class="feat-desc">Ultra-low latency real-time conversation</div></div>
+<div class="feature-item"><div class="feat-icon">🖥️</div><div class="feat-title">System Control</div><div class="feat-desc">Launch apps, manage files, terminal</div></div>
+<div class="feature-item"><div class="feat-icon">👁️</div><div class="feat-title">Visual Awareness</div><div class="feat-desc">Screen & webcam analysis</div></div>
+<div class="feature-item"><div class="feat-icon">🧠</div><div class="feat-title">Persistent Memory</div><div class="feat-desc">Remembers context & preferences</div></div>
+<div class="feature-item"><div class="feat-icon">🌐</div><div class="feat-title">Browser Control</div><div class="feat-desc">Automated web navigation</div></div>
+<div class="feature-item"><div class="feat-icon">🤖</div><div class="feat-title">Agent Planner</div><div class="feat-desc">Multi-step autonomous tasks</div></div>
+</div>
+</div>
+</div>
+
+<!-- ═══ COLUMN 2: METHODOLOGY ═══ -->
+<div style="display:flex;flex-direction:column;gap:14px">
+<div class="section">
+<div class="section-title"><span class="icon">⚙️</span> System Architecture</div>
+<div class="img-card">
+<img src="architecture_diagram.png" alt="Architecture Diagram" onerror="this.style.background='linear-gradient(135deg,#0d1440,#1a1f5a)';this.style.height='140px'">
+<div class="img-card-label">LEO System Architecture — Modular Design</div>
+</div>
+<p style="margin-top:6px">LEO employs a <strong style="color:#00c8ff">modular pipeline architecture</strong> with five key layers working in real-time:</p>
+<div class="flow">
+<div class="flow-step">🎤 Voice<br>Capture</div><span class="flow-arrow">→</span>
+<div class="flow-step">🧠 Gemini<br>Live API</div><span class="flow-arrow">→</span>
+<div class="flow-step">🔧 Tool<br>Router</div><span class="flow-arrow">→</span>
+<div class="flow-step">⚡ Action<br>Executor</div><span class="flow-arrow">→</span>
+<div class="flow-step">🔊 Audio<br>Response</div>
+</div>
+</div>
+
+<div class="section">
+<div class="section-title"><span class="icon">🛠️</span> Methodology & Implementation</div>
+<ul>
+<li><strong style="color:#a78bfa">Voice Engine:</strong> Google Gemini 2.5 Flash Native Audio model with bidirectional PCM streaming at 16kHz input / 24kHz output</li>
+<li><strong style="color:#a78bfa">Tool System:</strong> 16 specialized function declarations with automatic routing — browser, files, apps, code, desktop, weather, YouTube, flights, games</li>
+<li><strong style="color:#a78bfa">Agentic Planner:</strong> Multi-step task decomposition with priority queue, error recovery, and autonomous re-planning</li>
+<li><strong style="color:#a78bfa">Browser Automation:</strong> Playwright-based cross-browser control (Chrome, Edge, Firefox, Opera, Brave, Safari)</li>
+<li><strong style="color:#a78bfa">Vision Module:</strong> Real-time screen capture + webcam analysis via Gemini multimodal API</li>
+<li><strong style="color:#a78bfa">Memory System:</strong> JSON-based persistent storage with 6 categories — identity, preferences, projects, relationships, wishes, notes</li>
+<li><strong style="color:#a78bfa">UI Layer:</strong> Custom Tkinter interface with animated state indicators (Listening, Thinking, Speaking)</li>
+</ul>
+<div class="img-row" style="margin-top:8px">
+<div class="img-card">
+<img src="voice_recognition.png" alt="Voice Processing" onerror="this.style.background='linear-gradient(135deg,#0d1440,#1a1f5a)';this.style.height='100px'">
+<div class="img-card-label">Real-Time Voice Processing</div>
+</div>
+<div class="img-card">
+<img src="browser_automation.png" alt="Browser Automation" onerror="this.style.background='linear-gradient(135deg,#0d1440,#1a1f5a)';this.style.height='100px'">
+<div class="img-card-label">Browser Automation Engine</div>
+</div>
+</div>
+</div>
+
+<div class="section">
+<div class="section-title"><span class="icon">💻</span> Technology Stack</div>
+<div class="tech-pills">
+<span class="pill">Python 3.12</span>
+<span class="pill">Google Gemini API</span>
+<span class="pill">Playwright</span>
+<span class="pill">SoundDevice</span>
+<span class="pill">Tkinter</span>
+<span class="pill">AsyncIO</span>
+<span class="pill">PyAutoGUI</span>
+<span class="pill">JSON Memory</span>
+<span class="pill">Threading</span>
+<span class="pill">REST APIs</span>
+</div>
+<div class="stats-row">
+<div class="stat-box"><div class="num">16</div><div class="label">Tool Modules</div></div>
+<div class="stat-box"><div class="num">6</div><div class="label">Browsers</div></div>
+<div class="stat-box"><div class="num">3</div><div class="label">OS Platforms</div></div>
+</div>
+</div>
+</div>
+
+<!-- ═══ COLUMN 3: RESULTS & CONCLUSION ═══ -->
+<div style="display:flex;flex-direction:column;gap:14px">
+<div class="section">
+<div class="section-title"><span class="icon">📊</span> Results</div>
+<ul>
+<li>Successfully implemented <strong style="color:#00c8ff">real-time bidirectional voice</strong> with &lt;500ms latency using Gemini Live API</li>
+<li>All <strong style="color:#00c8ff">16 tool modules</strong> operate reliably — app launching, file management, browser control, code generation, and more</li>
+<li>Agentic task planner handles <strong style="color:#00c8ff">complex multi-step workflows</strong> with automatic error recovery</li>
+<li>Persistent memory system <strong style="color:#00c8ff">retains user context</strong> across sessions with categorized storage</li>
+<li>Browser automation achieves <strong style="color:#00c8ff">cross-browser compatibility</strong> across 7 major browsers</li>
+<li>Screen analysis provides <strong style="color:#00c8ff">accurate visual understanding</strong> for context-aware responses</li>
+</ul>
+<div class="img-row" style="margin-top:8px">
+<div class="img-card">
+<img src="system_control.png" alt="System Control" onerror="this.style.background='linear-gradient(135deg,#0d1440,#1a1f5a)';this.style.height='100px'">
+<div class="img-card-label">Autonomous System Control</div>
+</div>
+<div class="img-card">
+<img src="memory_system.png" alt="Memory System" onerror="this.style.background='linear-gradient(135deg,#0d1440,#1a1f5a)';this.style.height='100px'">
+<div class="img-card-label">Persistent Memory Engine</div>
+</div>
+</div>
+</div>
+
+<div class="section">
+<div class="section-title"><span class="icon">💬</span> Discussion</div>
+<p>LEO demonstrates that a <strong style="color:#00c8ff">locally-executed, voice-driven AI agent</strong> can achieve capabilities previously limited to cloud-only enterprise solutions. The modular architecture allows each subsystem to evolve independently.</p>
+<div class="highlight-box">
+<p>"LEO transforms your operating system into an intelligent entity — it doesn't just respond to commands, it understands context, remembers preferences, sees your screen, and autonomously executes complex multi-step workflows."</p>
+</div>
+<p style="margin-top:6px">Key advantages over existing assistants:</p>
+<ul style="margin-top:4px">
+<li><strong style="color:#a78bfa">Full OS Control:</strong> Unlike Siri/Alexa, LEO can control any application and automate desktop workflows</li>
+<li><strong style="color:#a78bfa">Visual Intelligence:</strong> Real-time screen reading enables context-aware assistance</li>
+<li><strong style="color:#a78bfa">Zero Cloud Lock-in:</strong> Runs locally with API keys — no subscriptions or data sharing</li>
+<li><strong style="color:#a78bfa">True Autonomy:</strong> Agentic planner decomposes goals into executable steps</li>
+</ul>
+</div>
+
+<div class="section">
+<div class="section-title"><span class="icon">🚀</span> Conclusion & Future Work</div>
+<p><strong style="color:#00c8ff">Conclusion:</strong> LEO successfully provides a fully autonomous, cross-platform AI assistant with real-time voice interaction, visual awareness, 16 specialized tools, agentic planning, and persistent memory — all running locally with privacy-first design.</p>
+<p style="margin-top:8px"><strong style="color:#a78bfa">Future Enhancements:</strong></p>
+<ul style="margin-top:4px">
+<li>Mobile companion app (Android/iOS) for remote control</li>
+<li>RAG-based document analysis and knowledge retrieval</li>
+<li>Multi-agent collaboration for complex workflows</li>
+<li>Smart home IoT integration (lights, thermostat, cameras)</li>
+<li>On-device model support for fully offline operation</li>
+</ul>
+</div>
+
+<div class="section">
+<div class="section-title"><span class="icon">🙏</span> Acknowledgements</div>
+<p>We thank the Management, Principal, Dean, HOD, and the ISE department of SJB Institute of Technology for their continuous support and guidance throughout this project.</p>
+<p style="margin-top:6px;color:#7ec8e3;font-size:8px;letter-spacing:1px">Contact: Varun Nayaka | SJBIT, Dept of ISE</p>
+</div>
+</div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+<p class="ack">🧠 L.E.O — Linguistic Executive Officer &nbsp;|&nbsp; Engineered by Varun Nayaka &nbsp;|&nbsp; SJB Institute of Technology</p>
+<p style="margin-top:3px">Department of Information Science & Engineering &nbsp;•&nbsp; 2025-2026</p>
+</div>
+</div>
+</body>
+</html>

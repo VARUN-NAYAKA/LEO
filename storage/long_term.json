@@ -1,0 +1,35 @@
+{
+  "identity": {
+    "name": {
+      "value": "Varun",
+      "updated": "2026-04-20"
+    },
+    "student_at": {
+      "value": "SJBIT",
+      "updated": "2026-04-20"
+    }
+  },
+  "preferences": {
+    "address_as": {
+      "value": "boss",
+      "updated": "2026-04-20"
+    }
+  },
+  "projects": {},
+  "relationships": {
+    "new_boss": {
+      "value": "user",
+      "updated": "2026-04-20"
+    },
+    "relationship_status": {
+      "value": "single",
+      "updated": "2026-04-20"
+    },
+    "younger_brother_name": {
+      "value": "Bharat",
+      "updated": "2026-04-20"
+    }
+  },
+  "wishes": {},
+  "notes": {}
+}

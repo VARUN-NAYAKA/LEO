@@ -9,27 +9,27 @@ from pathlib import Path
 import sounddevice as sd
 from google import genai
 from google.genai import types
-from ui import LeoUI
-from memory.memory_manager import (
+from interface import AssistantInterface
+from storage.user_memory import (
     load_memory, update_memory, format_memory_for_prompt,
 )
 
-from actions.flight_finder     import flight_finder
-from actions.open_app          import open_app
-from actions.weather_report    import weather_action
-from actions.send_message      import send_message
-from actions.reminder          import reminder
-from actions.computer_settings import computer_settings
-from actions.screen_processor  import screen_process
-from actions.youtube_video     import youtube_video
-from actions.desktop           import desktop_control
-from actions.browser_control   import browser_control
-from actions.file_controller   import file_controller
-from actions.code_helper       import code_helper
-from actions.dev_agent         import dev_agent
-from actions.web_search        import web_search as web_search_action
-from actions.computer_control  import computer_control
-from actions.game_updater      import game_updater
+from modules.data.flights     import find_flights
+from modules.system.apps          import launch_application
+from modules.data.weather    import fetch_weather
+from modules.productivity.messenger      import dispatch_message
+from modules.productivity.scheduler          import schedule_reminder
+from modules.system.settings import adjust_settings
+from modules.media.screen_vision  import analyze_display
+from modules.media.youtube     import handle_youtube
+from modules.system.display           import manage_desktop
+from modules.web.browser   import drive_browser
+from modules.productivity.files   import manage_files
+from modules.productivity.code_writer       import assist_code
+from modules.productivity.project_builder         import build_project
+from modules.web.search        import search_web as web_search_fn
+from modules.system.input_control  import control_input
+from modules.data.gaming      import manage_games
 
 
 def get_base_dir():
@@ -39,43 +39,43 @@ def get_base_dir():
 
 
 BASE_DIR        = get_base_dir()
-API_CONFIG_PATH = BASE_DIR / "config" / "api_keys.json"
-PROMPT_PATH     = BASE_DIR / "core" / "prompt.txt"
-LIVE_MODEL          = "models/gemini-2.5-flash-native-audio-preview-12-2025"
+CREDENTIALS_FILE = BASE_DIR / "config" / "api_keys.json"
+PERSONA_FILE     = BASE_DIR / "config" / "persona.txt"
+GEMINI_MODEL_ID          = "models/gemini-2.5-flash-native-audio-preview-12-2025"
 CHANNELS            = 1
-SEND_SAMPLE_RATE    = 16000
-RECEIVE_SAMPLE_RATE = 24000
-CHUNK_SIZE          = 1024
+MIC_SAMPLE_HZ    = 16000
+SPEAKER_SAMPLE_HZ = 24000
+AUDIO_FRAME_SIZE          = 1024
 
 
 def _get_api_key() -> str:
-    with open(API_CONFIG_PATH, "r", encoding="utf-8") as f:
+    with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
         return json.load(f)["gemini_api_key"]
 
 
 def _load_system_prompt() -> str:
     try:
-        return PROMPT_PATH.read_text(encoding="utf-8")
+        return PERSONA_FILE.read_text(encoding="utf-8")
     except Exception:
         return (
-            "You are LEO, the Linguistic Executive Officer, created by Varun Nayaka. "
+            "You are LEO, a personal AI assistant developed by Varun Nayaka. "
             "Be concise, direct, and always use the provided tools to complete tasks. "
             "Never simulate or guess results — always call the appropriate tool."
         )
 
 
-# ── Transkripsiyon temizleyici ─────────────────────────────────────────────────
-_CTRL_RE = re.compile(r"<ctrl\d+>", re.IGNORECASE)
+# ── Transcript sanitizer ─────────────────────────────────────────────────
+_ARTIFACT_PATTERN = re.compile(r"<ctrl\d+>", re.IGNORECASE)
 
-def _clean_transcript(text: str) -> str:
-    """Gemini'nin ürettiği <ctrlXX> artefaktlarını ve kontrol karakterlerini temizler."""
-    text = _CTRL_RE.sub("", text)
+def _sanitize_text(text: str) -> str:
+    """Strip Gemini control-code artifacts and non-printable characters from text."""
+    text = _ARTIFACT_PATTERN.sub("", text)
     text = re.sub(r"[\x00-\x08\x0b-\x1f]", "", text)
     return text.strip()
 
 
 # ── Tool declarations ──────────────────────────────────────────────────────────
-TOOL_DECLARATIONS = [
+ACTION_SCHEMAS = [
     {
         "name": "open_app",
         "description": (
@@ -375,7 +375,7 @@ TOOL_DECLARATIONS = [
         }
     },
     {
-        "name": "shutdown_leo",
+        "name": "shutdown_assistant",
         "description": (
             "Shuts down the assistant completely. "
             "Call this when the user expresses intent to end the conversation, "
@@ -420,9 +420,9 @@ TOOL_DECLARATIONS = [
 ]
 
 
-class LeoLive:
+class VoiceOrchestrator:
 
-    def __init__(self, ui: LeoUI):
+    def __init__(self, ui: AssistantInterface):
         self.ui             = ui
         self.session        = None
         self.audio_in_queue = None
@@ -444,7 +444,7 @@ class LeoLive:
             self._loop
         )
 
-    def set_speaking(self, value: bool):
+    def update_voice_state(self, value: bool):
         with self._speaking_lock:
             self._is_speaking = value
         if value:
@@ -452,7 +452,7 @@ class LeoLive:
         elif not self.ui.muted:
             self.ui.set_state("LISTENING")
 
-    def speak(self, text: str):
+    def send_text_to_model(self, text: str):
         if not self._loop or not self.session:
             return
         asyncio.run_coroutine_threadsafe(
@@ -463,12 +463,12 @@ class LeoLive:
             self._loop
         )
 
-    def speak_error(self, tool_name: str, error: str):
+    def report_action_failure(self, tool_name: str, error: str):
         short = str(error)[:120]
         self.ui.write_log(f"ERR: {tool_name} — {short}")
-        self.speak(f"Sir, {tool_name} encountered an error. {short}")
+        self.send_text_to_model(f"Sir, {tool_name} encountered an error. {short}")
 
-    def _build_config(self) -> types.LiveConnectConfig:
+    def _create_session_config(self) -> types.LiveConnectConfig:
         from datetime import datetime
 
         memory     = load_memory()
@@ -493,7 +493,7 @@ class LeoLive:
             output_audio_transcription={},
             input_audio_transcription={},
             system_instruction="\n".join(parts),
-            tools=[{"function_declarations": TOOL_DECLARATIONS}],
+            tools=[{"function_declarations": ACTION_SCHEMAS}],
             session_resumption=types.SessionResumptionConfig(),
             speech_config=types.SpeechConfig(
                 voice_config=types.VoiceConfig(
@@ -504,21 +504,21 @@ class LeoLive:
             ),
         )
 
-    async def _execute_tool(self, fc) -> types.FunctionResponse:
+    async def _dispatch_action(self, fc) -> types.FunctionResponse:
         name = fc.name
         args = dict(fc.args or {})
 
-        print(f"[LEO] 🔧 {name}  {args}")
+        print(f"[Core] 🔧 {name}  {args}")
         self.ui.set_state("THINKING")
 
-        # ── save_memory: sessiz ve hızlı ──────────────────────────────────────
+        # ── Silently persist user facts ──────────────────────────────────────
         if name == "save_memory":
             category = args.get("category", "notes")
             key      = args.get("key", "")
             value    = args.get("value", "")
             if key and value:
                 update_memory({category: {key: {"value": value}}})
-                print(f"[Memory] 💾 save_memory: {category}/{key} = {value}")
+                print(f"[UserStore] 💾 save_memory: {category}/{key} = {value}")
             if not self.ui.muted:
                 self.ui.set_state("LISTENING")
             return types.FunctionResponse(
@@ -531,23 +531,23 @@ class LeoLive:
 
         try:
             if name == "open_app":
-                r = await loop.run_in_executor(None, lambda: open_app(parameters=args, response=None, player=self.ui))
+                r = await loop.run_in_executor(None, lambda: launch_application(parameters=args, response=None, player=self.ui))
                 result = r or f"Opened {args.get('app_name')}."
 
             elif name == "weather_report":
-                r = await loop.run_in_executor(None, lambda: weather_action(parameters=args, player=self.ui))
+                r = await loop.run_in_executor(None, lambda: fetch_weather(parameters=args, player=self.ui))
                 result = r or "Weather delivered."
 
             elif name == "browser_control":
-                r = await loop.run_in_executor(None, lambda: browser_control(parameters=args, player=self.ui))
+                r = await loop.run_in_executor(None, lambda: drive_browser(parameters=args, player=self.ui))
                 result = r or "Done."
 
             elif name == "file_controller":
-                r = await loop.run_in_executor(None, lambda: file_controller(parameters=args, player=self.ui))
+                r = await loop.run_in_executor(None, lambda: manage_files(parameters=args, player=self.ui))
                 result = r or "Done."
 
             elif name == "send_message":
-                r = await loop.run_in_executor(None, lambda: send_message(parameters=args, response=None, player=self.ui, session_memory=None))
+                r = await loop.run_in_executor(None, lambda: dispatch_message(parameters=args, response=None, player=self.ui, session_memory=None))
                 result = r or f"Message sent to {args.get('receiver')}."
 
             elif name == "reminder":
@@ -555,7 +555,7 @@ class LeoLive:
                 result = r or "Reminder set."
 
             elif name == "youtube_video":
-                r = await loop.run_in_executor(None, lambda: youtube_video(parameters=args, response=None, player=self.ui))
+                r = await loop.run_in_executor(None, lambda: handle_youtube(parameters=args, response=None, player=self.ui))
                 result = r or "Done."
 
             elif name == "screen_process":
@@ -568,47 +568,47 @@ class LeoLive:
                 result = "Vision module activated. Stay completely silent — vision module will speak directly."
 
             elif name == "computer_settings":
-                r = await loop.run_in_executor(None, lambda: computer_settings(parameters=args, response=None, player=self.ui))
+                r = await loop.run_in_executor(None, lambda: adjust_settings(parameters=args, response=None, player=self.ui))
                 result = r or "Done."
 
             elif name == "desktop_control":
-                r = await loop.run_in_executor(None, lambda: desktop_control(parameters=args, player=self.ui))
+                r = await loop.run_in_executor(None, lambda: manage_desktop(parameters=args, player=self.ui))
                 result = r or "Done."
 
             elif name == "code_helper":
-                r = await loop.run_in_executor(None, lambda: code_helper(parameters=args, player=self.ui, speak=self.speak))
+                r = await loop.run_in_executor(None, lambda: assist_code(parameters=args, player=self.ui, speak=self.speak))
                 result = r or "Done."
 
             elif name == "dev_agent":
-                r = await loop.run_in_executor(None, lambda: dev_agent(parameters=args, player=self.ui, speak=self.speak))
+                r = await loop.run_in_executor(None, lambda: build_project(parameters=args, player=self.ui, speak=self.speak))
                 result = r or "Done."
 
             elif name == "agent_task":
-                from agent.task_queue import get_queue, TaskPriority
-                priority_map = {"low": TaskPriority.LOW, "normal": TaskPriority.NORMAL, "high": TaskPriority.HIGH}
-                priority = priority_map.get(args.get("priority", "normal").lower(), TaskPriority.NORMAL)
+                from orchestrator.work_queue import get_queue, JobPriority
+                priority_map = {"low": JobPriority.LOW, "normal": JobPriority.NORMAL, "high": JobPriority.HIGH}
+                priority = priority_map.get(args.get("priority", "normal").lower(), JobPriority.NORMAL)
                 task_id  = get_queue().submit(goal=args.get("goal", ""), priority=priority, speak=self.speak)
                 result   = f"Task started (ID: {task_id})."
 
             elif name == "web_search":
-                r = await loop.run_in_executor(None, lambda: web_search_action(parameters=args, player=self.ui))
+                r = await loop.run_in_executor(None, lambda: web_search_fn(parameters=args, player=self.ui))
                 result = r or "Done."
 
             elif name == "computer_control":
-                r = await loop.run_in_executor(None, lambda: computer_control(parameters=args, player=self.ui))
+                r = await loop.run_in_executor(None, lambda: control_input(parameters=args, player=self.ui))
                 result = r or "Done."
 
             elif name == "game_updater":
-                r = await loop.run_in_executor(None, lambda: game_updater(parameters=args, player=self.ui, speak=self.speak))
+                r = await loop.run_in_executor(None, lambda: manage_games(parameters=args, player=self.ui, speak=self.speak))
                 result = r or "Done."
 
             elif name == "flight_finder":
-                r = await loop.run_in_executor(None, lambda: flight_finder(parameters=args, player=self.ui))
+                r = await loop.run_in_executor(None, lambda: find_flights(parameters=args, player=self.ui))
                 result = r or "Done."
 
-            elif name == "shutdown_leo":
+            elif name == "shutdown_assistant":
                 self.ui.write_log("SYS: Shutdown requested.")
-                self.speak("Goodbye, sir.")
+                self.send_text_to_model("Goodbye, sir.")
                 def _shutdown():
                     import time, os
                     time.sleep(1)
@@ -621,24 +621,24 @@ class LeoLive:
         except Exception as e:
             result = f"Tool '{name}' failed: {e}"
             traceback.print_exc()
-            self.speak_error(name, e)
+            self.report_action_failure(name, e)
 
         if not self.ui.muted:
             self.ui.set_state("LISTENING")
 
-        print(f"[LEO] 📤 {name} → {str(result)[:80]}")
+        print(f"[Core] 📤 {name} → {str(result)[:80]}")
         return types.FunctionResponse(
             id=fc.id, name=name,
             response={"result": result}
         )
 
-    async def _send_realtime(self):
+    async def _stream_to_model(self):
         while True:
             msg = await self.out_queue.get()
             await self.session.send_realtime_input(media=msg)
 
-    async def _listen_audio(self):
-        print("[LEO] 🎤 Mic started")
+    async def _capture_microphone(self):
+        print("[Core] 🎤 Mic started")
         loop = asyncio.get_event_loop()
 
         def callback(indata, frames, time_info, status):
@@ -653,21 +653,21 @@ class LeoLive:
 
         try:
             with sd.InputStream(
-                samplerate=SEND_SAMPLE_RATE,
+                samplerate=MIC_SAMPLE_HZ,
                 channels=CHANNELS,
                 dtype="int16",
-                blocksize=CHUNK_SIZE,
+                blocksize=AUDIO_FRAME_SIZE,
                 callback=callback,
             ):
-                print("[LEO] 🎤 Mic stream open")
+                print("[Core] 🎤 Mic stream open")
                 while True:
                     await asyncio.sleep(0.1)
         except Exception as e:
-            print(f"[LEO] ❌ Mic: {e}")
+            print(f"[Core] ❌ Mic: {e}")
             raise
 
-    async def _receive_audio(self):
-        print("[LEO] 👂 Recv started")
+    async def _handle_server_stream(self):
+        print("[Core] 👂 Recv started")
         out_buf, in_buf = [], []
 
         try:
@@ -683,12 +683,12 @@ class LeoLive:
                         sc = response.server_content
 
                         if sc.output_transcription and sc.output_transcription.text:
-                            txt = _clean_transcript(sc.output_transcription.text)
+                            txt = _sanitize_text(sc.output_transcription.text)
                             if txt:
                                 out_buf.append(txt)
 
                         if sc.input_transcription and sc.input_transcription.text:
-                            txt = _clean_transcript(sc.input_transcription.text)
+                            txt = _sanitize_text(sc.input_transcription.text)
                             if txt:
                                 in_buf.append(txt)
 
@@ -709,26 +709,26 @@ class LeoLive:
                     if response.tool_call:
                         fn_responses = []
                         for fc in response.tool_call.function_calls:
-                            print(f"[LEO] 📞 {fc.name}")
-                            fr = await self._execute_tool(fc)
+                            print(f"[Core] 📞 {fc.name}")
+                            fr = await self._dispatch_action(fc)
                             fn_responses.append(fr)
                         await self.session.send_tool_response(
                             function_responses=fn_responses
                         )
 
         except Exception as e:
-            print(f"[LEO] ❌ Recv: {e}")
+            print(f"[Core] ❌ Recv: {e}")
             traceback.print_exc()
             raise
 
-    async def _play_audio(self):
-        print("[LEO] 🔊 Play started")
+    async def _output_speech(self):
+        print("[Core] 🔊 Play started")
 
         stream = sd.RawOutputStream(
-            samplerate=RECEIVE_SAMPLE_RATE,
+            samplerate=SPEAKER_SAMPLE_HZ,
             channels=CHANNELS,
             dtype="int16",
-            blocksize=CHUNK_SIZE,
+            blocksize=AUDIO_FRAME_SIZE,
         )
         stream.start()
 
@@ -745,18 +745,18 @@ class LeoLive:
                         and self._turn_done_event.is_set()
                         and self.audio_in_queue.empty()
                     ):
-                        self.set_speaking(False)
+                        self.update_voice_state(False)
                         self._turn_done_event.clear()
                     continue
 
-                self.set_speaking(True)
+                self.update_voice_state(True)
                 await asyncio.to_thread(stream.write, chunk)
 
         except Exception as e:
-            print(f"[LEO] ❌ Play: {e}")
+            print(f"[Core] ❌ Play: {e}")
             raise
         finally:
-            self.set_speaking(False)
+            self.update_voice_state(False)
             stream.stop()
             stream.close()
 
@@ -768,12 +768,12 @@ class LeoLive:
 
         while True:
             try:
-                print("[LEO] 🔌 Connecting...")
+                print("[Core] 🔌 Connecting...")
                 self.ui.set_state("THINKING")
-                config = self._build_config()
+                config = self._create_session_config()
 
                 async with (
-                    client.aio.live.connect(model=LIVE_MODEL, config=config) as session,
+                    client.aio.live.connect(model=GEMINI_MODEL_ID, config=config) as session,
                     asyncio.TaskGroup() as tg,
                 ):
                     self.session        = session
@@ -782,31 +782,31 @@ class LeoLive:
                     self.out_queue      = asyncio.Queue(maxsize=10)
                     self._turn_done_event = asyncio.Event()
 
-                    print("[LEO] ✅ Connected.")
+                    print("[Core] ✅ Connected.")
                     self.ui.set_state("LISTENING")
                     self.ui.write_log("SYS: LEO online.")
 
-                    tg.create_task(self._send_realtime())
-                    tg.create_task(self._listen_audio())
-                    tg.create_task(self._receive_audio())
-                    tg.create_task(self._play_audio())
+                    tg.create_task(self._stream_to_model())
+                    tg.create_task(self._capture_microphone())
+                    tg.create_task(self._handle_server_stream())
+                    tg.create_task(self._output_speech())
 
             except Exception as e:
-                print(f"[LEO] ⚠️ {e}")
+                print(f"[Core] ⚠️ {e}")
                 traceback.print_exc()
 
-            self.set_speaking(False)
+            self.update_voice_state(False)
             self.ui.set_state("THINKING")
-            print("[LEO] 🔄 Reconnecting in 3s...")
+            print("[Core] 🔄 Reconnecting in 3s...")
             await asyncio.sleep(3)
 
 
 def main():
-    ui = LeoUI("face.png")
+    ui = AssistantInterface("face.png")
 
     def runner():
         ui.wait_for_api_key()
-        LEO = LeoLive(ui)
+        LEO = VoiceOrchestrator(ui)
         try:
             asyncio.run(LEO.run())
         except KeyboardInterrupt:
